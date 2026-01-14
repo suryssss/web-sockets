@@ -31,8 +31,11 @@ io.on("connection", (socket) => {
         if (!rooms[roomId]) {
             rooms[roomId] = {
                 users: {},
-                code: ""
+                code: "",
+                hostSocketId: socket.id,
+                isLocked: false
             }
+            console.log("Host assigned:", socket.id);
         }
 
         const room = rooms[roomId]
@@ -56,6 +59,15 @@ io.on("connection", (socket) => {
             code: room.code
         });
 
+        socket.emit("lock-state-changed", {
+            isLocked: room.isLocked
+        });
+
+        socket.emit("host-assigned", {
+            isHost: socket.id === room.hostSocketId
+        });
+
+
         //userList
         const userList = Object.values(room.users).map(
             (u) => u.username
@@ -68,9 +80,15 @@ io.on("connection", (socket) => {
         })
     })
 
+
     socket.on("code-change", ({ roomId, code }) => {
         const room = rooms[roomId]
         if (!room) return
+
+        if (room.isLocked && socket.id !== room.hostSocketId) {
+            console.log("room locked cannoty change the code")
+            return
+        }
 
         //update source
         room.code = code
@@ -95,6 +113,14 @@ io.on("connection", (socket) => {
 
         delete room.users[socket.id];
 
+        if (room.hostSocketId === socket.id) {
+            const remaningsocketIds = Object.keys(room.users)
+            if (remaningsocketIds.length > 0) {
+                room.hostSocketId = remaningsocketIds[0]
+                console.log("new host assigned:", room.hostSocketId)
+            }
+        }
+
         const userList = Object.values(room.users).map(
             (u) => u.username
         );
@@ -110,6 +136,27 @@ io.on("connection", (socket) => {
 
         console.log("user disconnected", socket.id);
     });
+
+
+    socket.on("toggle-lock", ({ roomId }) => {
+        const room = rooms[roomId]
+        if (!room) return
+
+        if (room.hostSocketId !== socket.id) {
+            console.log("only host can lock the room")
+            return
+        }
+        room.isLocked = !room.isLocked
+
+        console.log("room :",
+            roomId,
+            room.isLocked ? "Locked" : "Unlocked"
+        )
+
+        io.to(roomId).emit("lock-state-changed", {
+            isLocked: room.isLocked
+        })
+    })
 
 })
 
