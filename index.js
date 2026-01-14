@@ -50,6 +50,12 @@ io.on("connection", (socket) => {
         socket.join(roomId)
 
         socket.data.roomId = roomId;
+
+        // Send current room code to the newly joined user
+        socket.emit("sync-code", {
+            code: room.code
+        });
+
         //userList
         const userList = Object.values(room.users).map(
             (u) => u.username
@@ -60,6 +66,22 @@ io.on("connection", (socket) => {
             username,
             users: userList,
         })
+    })
+
+    socket.on("code-change", ({ roomId, code }) => {
+        const room = rooms[roomId]
+        if (!room) return
+
+        //update source
+        room.code = code
+
+        console.log("code updated", roomId)
+        console.log("code", room.code)
+
+        socket.to(roomId).emit("sync-code", {
+            code: room.code
+        })
+
     })
 
     socket.on("disconnect", () => {

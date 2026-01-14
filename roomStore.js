@@ -1,12 +1,17 @@
+// roomStore.js
 
+const rooms = {
+    /*
+      [roomId]: {
+        users: {
+          [userId]: {
+            username: string,
+            socketId: string
+          }
+        },
+        code: ""
+      }
+    */
+};
 
-const rooms={
-    // [roomId]:{
-    //     users:{
-    //         [socketId]:{
-    //             username: string,
-    //         }
-    //     },
-    //     code:""
-    // }
-}
+module.exports = rooms;
